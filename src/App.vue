@@ -29,12 +29,10 @@
           <el-card shadow="always" style="height: 270px">
             <template #header>
               <div class="clearfix">
-                <span>显示计算出来的可嵌入信息的最大长度</span>
+                <span>最大可嵌入信息长度: {{ maxEmbedLength }} 字节</span>
               </div>
             </template>
-            <!-- 显示最大长度 -->
           </el-card>
-
 
           <!--显示提取信息-->
           <el-card shadow="always" style="margin-top: 20px; height: auto;">
@@ -46,7 +44,8 @@
             <el-input
                 v-model="embedMessage"
                 style="width: 100%"
-                :autosize="{ minRows: 3, maxRows: 5 }"
+                :maxlength="maxEmbedLength"
+                :show-word-limit="true"
                 type="textarea"
                 placeholder="请输入要嵌入的信息"
             />
@@ -86,7 +85,8 @@ export default {
       imageBase64: null,
       embedMessage: '',
       extractedMessage: '',
-      imageAfterEmbed: null
+      imageAfterEmbed: null,
+      maxEmbedLength: 0 // 最大可嵌入长度
     };
   },
   methods: {
@@ -101,7 +101,7 @@ export default {
         reader.onload = (e) => {
           this.imageSrc = e.target.result;
           this.imageBase64 = e.target.result.split(',')[1];//提取DataURL的Base64部分
-          this.uploadImage(this.imageBase64);//// 调用上传函数
+          this.uploadImage(this.imageBase64); // 调用上传函数
         };
         reader.readAsDataURL(file);
       } else {
@@ -112,7 +112,7 @@ export default {
       // 后端上传
       console.log('上传图片的 Base64 编码:', base64);
       // 使用 fetch 发送请求
-      fetch('后端接口地址', {
+      fetch('http://localhost:8081/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -122,6 +122,7 @@ export default {
           .then(response => response.json())
           .then(data => {
             console.log('图片上传成功:', data);
+            this.maxEmbedLength = data.maxEmbedLength; // 设置最大可嵌入长度
           })
           .catch(error => {
             console.error('图片上传失败:', error);
@@ -134,7 +135,7 @@ export default {
         message: this.embedMessage
       };
       console.log('嵌入的信息:', embedData);
-      fetch('后端嵌入接口地址', {
+      fetch('http://localhost:8081/embed', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -144,6 +145,7 @@ export default {
           .then(response => response.json())
           .then(data => {
             console.log('信息嵌入成功:', data);
+            this.imageAfterEmbed = 'data:image/bmp;base64,' + data.image; // 更新嵌入后的图片
           })
           .catch(error => {
             console.error('信息嵌入失败:', error);
@@ -152,8 +154,7 @@ export default {
     handleButtonClick(action) {
       if (action === 'extract') {
         // 提取信息
-        this.extractedMessage = '这是提取到的信息';
-        fetch('后端提取接口地址', {
+        fetch('http://localhost:8081/extract', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -167,8 +168,26 @@ export default {
             .catch(error => {
               console.error('信息提取失败:', error);
             });
+      } else if (action === 'store') {
+        this.storeImage();
       }
       console.log(action);
+    },
+    storeImage() {
+      const link = document.createElement('a');
+      link.href = this.imageAfterEmbed;
+      link.download = 'embedded_image.bmp';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  },
+  watch: {
+    embedMessage(newVal) {
+      const byteLength = new TextEncoder().encode(newVal).length;
+      if (byteLength > this.maxEmbedLength) {
+        this.embedMessage = newVal.slice(0, Math.floor(this.maxEmbedLength / 3)); // UTF-8 最大字符占3字节
+      }
     }
   }
 };
@@ -193,8 +212,8 @@ export default {
 }
 
 .display-image {
-  max-height: calc(100vh - 200px); /* 设置最大高度，确保不超过页面高度 */
-  width: auto;
+  max-width: 100%; /* 设置最大宽度，确保图片宽度不超过父容器宽度 */
+  max-height: 512px; /* 设置最大高度，确保图片高度不超过512px */
   display: block;
   margin: 0 auto;
 }
