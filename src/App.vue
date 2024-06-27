@@ -240,12 +240,15 @@ export default {
   },
   watch: {
     embedMessage(newVal) {
-      const byteLength = new TextEncoder().encode(newVal).length;
-      if (byteLength > this.maxEmbedLength) {
-        this.embedMessage = newVal.slice(0, Math.floor(this.maxEmbedLength / 3)); // UTF-8 最大字符占3字节
+      let byteLength = new TextEncoder().encode(newVal).length;
+      while (byteLength > this.maxEmbedLength) {
+        newVal = newVal.slice(0, -1); // 去掉最后一个字符
+        byteLength = new TextEncoder().encode(newVal).length;
       }
+      this.embedMessage = newVal;
     }
   }
+
 };
 </script>
 
