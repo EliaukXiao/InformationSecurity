@@ -4,6 +4,8 @@
       <el-button-group>
         <el-button @click="triggerFileInput">读取图片</el-button>
         <el-button @click="handleEmbed">嵌入</el-button>
+        <el-button @click="handleAddNoise">嵌入后加噪声</el-button>
+        <el-button @click="handleCalculateAccuracy">计算比特准确率</el-button>
         <el-button @click="handleButtonClick('store')">存储图片</el-button>
         <el-button @click="handleButtonClick('extract')">提取</el-button>
       </el-button-group>
@@ -24,9 +26,8 @@
         </el-col>
 
         <el-col :span="8">
-
           <!--显示计算出来的可嵌入信息的最大长度-->
-          <el-card shadow="always" style="height: 270px">
+          <el-card shadow="always" style="height: 150px">
             <template #header>
               <div class="clearfix">
                 <span>最大可嵌入信息长度: {{ maxEmbedLength }} 字节</span>
@@ -43,7 +44,7 @@
             </template>
             <el-input
                 v-model="embedMessage"
-                style="width: 100%"
+                class="embed-input"
                 :maxlength="maxEmbedLength"
                 :show-word-limit="true"
                 type="textarea"
@@ -54,11 +55,21 @@
               <p>提取到的信息:</p>
               <el-input
                   v-model="extractedMessage"
-                  style="width: 100%"
+                  class="embed-input"
                   type="textarea"
                   disabled
               />
             </div>
+          </el-card>
+          
+          <!--显示准确率-->
+          <el-card shadow="always" style="margin-top: 20px; height: auto;" v-if="accuracy !== null">
+            <template #header>
+              <div class="clearfix">
+                <span>比特准确率</span>
+              </div>
+            </template>
+            <p>{{ accuracy }}%</p>
           </el-card>
         </el-col>
         <el-col :span="8">
@@ -86,7 +97,8 @@ export default {
       embedMessage: '',
       extractedMessage: '',
       imageAfterEmbed: null,
-      maxEmbedLength: 0 // 最大可嵌入长度
+      maxEmbedLength: 0, // 最大可嵌入长度
+      accuracy: null // 准确率
     };
   },
   methods: {
@@ -149,6 +161,50 @@ export default {
           })
           .catch(error => {
             console.error('信息嵌入失败:', error);
+          });
+    },
+    handleAddNoise() {
+      // 发送请求到后端，添加噪声
+      const noiseData = {
+        image: this.imageBase64,
+        message: this.embedMessage
+      };
+      fetch('http://localhost:8081/addNoise', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(noiseData)
+      })
+          .then(response => response.json())
+          .then(data => {
+            console.log('加噪声成功:', data);
+            this.imageAfterEmbed = 'data:image/bmp;base64,' + data.image; // 更新嵌入后加噪声的图片
+          })
+          .catch(error => {
+            console.error('加噪声失败:', error);
+          });
+    },
+    handleCalculateAccuracy() {
+      // 计算比特准确率
+      const accuracyData = {
+        originalMessage: this.embedMessage,
+        extractedMessage: this.extractedMessage
+      };
+      fetch('http://localhost:8081/calculateAccuracy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(accuracyData)
+      })
+          .then(response => response.json())
+          .then(data => {
+            console.log('计算准确率成功:', data);
+            this.accuracy = data.accuracy; // 更新准确率
+          })
+          .catch(error => {
+            console.error('计算准确率失败:', error);
           });
     },
     handleButtonClick(action) {
@@ -218,7 +274,12 @@ export default {
   margin: 0 auto;
 }
 
+.embed-input {
+  height: 150px; /* 设置嵌入信息输入框的固定高度 */
+}
+
 .extracted-message {
   margin-top: 20px;
+  height: 150px; /* 设置提取信息显示框的固定高度 */
 }
 </style>
