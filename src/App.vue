@@ -43,21 +43,22 @@
               </div>
             </template>
             <el-input
-                v-model="embedMessage"
-                class="embed-input"
-                :maxlength="maxEmbedLength"
-                :show-word-limit="true"
-                type="textarea"
-                placeholder="请输入要嵌入的信息"
+              v-model="embedMessage"
+              class="embed-input"
+              type="textarea"
+              placeholder="请输入要嵌入的信息"
             />
+            <div class="byte-length-display">
+              {{ byteLength }} / {{ maxEmbedLength }} 字节
+            </div>
             <div v-if="extractedMessage" class="extracted-message">
               <el-divider></el-divider>
               <p>提取到的信息:</p>
               <el-input
-                  v-model="extractedMessage"
-                  class="embed-input"
-                  type="textarea"
-                  disabled
+                v-model="extractedMessage"
+                class="embed-input"
+                type="textarea"
+                disabled
               />
             </div>
           </el-card>
@@ -101,6 +102,11 @@ export default {
       accuracy: null // 准确率
     };
   },
+  computed: {
+    byteLength() {
+      return new TextEncoder().encode(this.embedMessage).length;
+    }
+  },
   methods: {
     triggerFileInput() {
       this.$refs.fileInput.click();
@@ -131,14 +137,14 @@ export default {
         },
         body: JSON.stringify({image: base64})
       })
-          .then(response => response.json())
-          .then(data => {
-            console.log('图片上传成功:', data);
-            this.maxEmbedLength = data.maxEmbedLength; // 设置最大可嵌入长度
-          })
-          .catch(error => {
-            console.error('图片上传失败:', error);
-          });
+        .then(response => response.json())
+        .then(data => {
+          console.log('图片上传成功:', data);
+          this.maxEmbedLength = data.maxEmbedLength; // 设置最大可嵌入长度
+        })
+        .catch(error => {
+          console.error('图片上传失败:', error);
+        });
     },
     handleEmbed() {
       // 嵌入信息发送到后端
@@ -154,14 +160,14 @@ export default {
         },
         body: JSON.stringify(embedData)
       })
-          .then(response => response.json())
-          .then(data => {
-            console.log('信息嵌入成功:', data);
-            this.imageAfterEmbed = 'data:image/bmp;base64,' + data.image; // 更新嵌入后的图片
-          })
-          .catch(error => {
-            console.error('信息嵌入失败:', error);
-          });
+        .then(response => response.json())
+        .then(data => {
+          console.log('信息嵌入成功:', data);
+          this.imageAfterEmbed = 'data:image/bmp;base64,' + data.image; // 更新嵌入后的图片
+        })
+        .catch(error => {
+          console.error('信息嵌入失败:', error);
+        });
     },
     handleAddNoise() {
       // 发送请求到后端，添加噪声
@@ -176,14 +182,14 @@ export default {
         },
         body: JSON.stringify(noiseData)
       })
-          .then(response => response.json())
-          .then(data => {
-            console.log('加噪声成功:', data);
-            this.imageAfterEmbed = 'data:image/bmp;base64,' + data.image; // 更新嵌入后加噪声的图片
-          })
-          .catch(error => {
-            console.error('加噪声失败:', error);
-          });
+        .then(response => response.json())
+        .then(data => {
+          console.log('加噪声成功:', data);
+          this.imageAfterEmbed = 'data:image/bmp;base64,' + data.image; // 更新嵌入后加噪声的图片
+        })
+        .catch(error => {
+          console.error('加噪声失败:', error);
+        });
     },
     handleCalculateAccuracy() {
       // 计算比特准确率
@@ -198,14 +204,14 @@ export default {
         },
         body: JSON.stringify(accuracyData)
       })
-          .then(response => response.json())
-          .then(data => {
-            console.log('计算准确率成功:', data);
-            this.accuracy = data.accuracy; // 更新准确率
-          })
-          .catch(error => {
-            console.error('计算准确率失败:', error);
-          });
+        .then(response => response.json())
+        .then(data => {
+          console.log('计算准确率成功:', data);
+          this.accuracy = data.accuracy; // 更新准确率
+        })
+        .catch(error => {
+          console.error('计算准确率失败:', error);
+        });
     },
     handleButtonClick(action) {
       if (action === 'extract') {
@@ -217,13 +223,13 @@ export default {
           },
           body: JSON.stringify({image: this.imageBase64})
         })
-            .then(response => response.json())
-            .then(data => {
-              this.extractedMessage = data.extractedMessage;
-            })
-            .catch(error => {
-              console.error('信息提取失败:', error);
-            });
+          .then(response => response.json())
+          .then(data => {
+            this.extractedMessage = data.extractedMessage;
+          })
+          .catch(error => {
+            console.error('信息提取失败:', error);
+          });
       } else if (action === 'store') {
         this.storeImage();
       }
@@ -248,7 +254,6 @@ export default {
       this.embedMessage = newVal;
     }
   }
-
 };
 </script>
 
@@ -284,5 +289,11 @@ export default {
 .extracted-message {
   margin-top: 20px;
   height: 150px; /* 设置提取信息显示框的固定高度 */
+}
+
+.byte-length-display {
+  text-align: right;
+  margin-top: 5px;
+  color: #909399;
 }
 </style>
