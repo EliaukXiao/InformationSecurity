@@ -51,6 +51,11 @@
             <div class="byte-length-display">
               {{ byteLength }} / {{ maxEmbedLength }} 字节
             </div>
+            <el-input
+              v-model="cypher"
+              placeholder="请输入密钥（可选）"
+              style="margin-top: 10px;"
+            />
             <div v-if="extractedMessage" class="extracted-message">
               <el-divider></el-divider>
               <p>提取到的信息:</p>
@@ -99,7 +104,8 @@ export default {
       extractedMessage: '',
       imageAfterEmbed: null,
       maxEmbedLength: 0, // 最大可嵌入长度
-      accuracy: null // 准确率
+      accuracy: null, // 准确率
+      cypher: '' // 密钥
     };
   },
   computed: {
@@ -152,8 +158,15 @@ export default {
         image: this.imageBase64,
         message: this.embedMessage
       };
+
+      let url = 'http://localhost:8081/embed';
+      if (this.cypher) {
+        embedData.cypher = this.cypher;
+        url = 'http://localhost:8081/embedWithCypher';
+      }
+
       console.log('嵌入的信息:', embedData);
-      fetch('http://localhost:8081/embed', {
+      fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -215,13 +228,23 @@ export default {
     },
     handleButtonClick(action) {
       if (action === 'extract') {
+        const extractData = {
+          image: this.imageBase64
+        };
+
+        let url = 'http://localhost:8081/extract';
+        if (this.cypher) {
+          extractData.cypher = this.cypher;
+          url = 'http://localhost:8081/extractWithCypher';
+        }
+
         // 提取信息
-        fetch('http://localhost:8081/extract', {
+        fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({image: this.imageBase64})
+          body: JSON.stringify(extractData)
         })
           .then(response => response.json())
           .then(data => {
